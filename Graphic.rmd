@@ -1,0 +1,283 @@
+---
+title: 'Homework 2: graphics practice'
+author:
+  - name: KANYARAT SUWANNAMA
+date: '`r Sys.Date()`'
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  eval = TRUE,
+  echo = TRUE,
+  message = FALSE,
+  error = FALSE,
+  warning = FALSE
+)
+```
+
+[Here is this homework's `R` `markdown` (`rmd`) file](homework/Lastname-Firstname-HW2.rmd).
+
+For this homework assignment, we'll continue exploring data related to our Citi Bike case study as a way to practice the concepts we've been discussing in class. In our third class discussion, we briefly considered an exploratory visualization of activity and docking station (im)balance, conducted in 2013 by [Columbia University's Center for Spatial Research](https://c4sr.columbia.edu/projects/citibike-rebalancing-study). As practice in understanding encodings, let's review and reconstruct one of the Center's graphics, titled: "CITI BIKE HOURLY ACTIVITY AND BALANCE". 
+
+<aside>
+**Opportunity alert**: In this assignment, as before, I provide most of the code and you fill in the blank (using functions introduced in our class slides and demonstration code) to get it working. But understand what I've coded to help you code on your own in future work.
+</aside>
+
+
+# Preliminary
+
+Place the homework two `R` `markdown` file into your RStudio project directory for this course, just as for your first homework.
+
+You can download and zoom in on a high resolution pdf of the graphic here: [https://c4sr.columbia.edu/sites/default/files/Activity_Matrix_Composite.pdf](https://c4sr.columbia.edu/sites/default/files/Activity_Matrix_Composite.pdf).
+
+
+
+# Question 1(a) and 1(b) — communication, data types and visual encodings
+
+
+
+In the Center's graphic we're reviewing, what *variables* and *data types* have been encoded? Explain to your answer to a Citi Bike analytics executive. 
+
+> There are 5 variables in the Center's graphic;
+- Address (character data type) 
+- Time (character data type) 
+- The movement or total number of bikes at the station (integer data type)
+- The number of bikes arriving at destination (integer data type)
+- The number of bikes leaving at origin (integer data type)
+
+Explain to the same audience, to what visual channels were those variables mapped?
+
+> For the number of bike variable is represented by a heatmap (rectangle shape). The data is encoding with different hue (orange and blue color), luminance (brightness) and chroma (saturation).
+> The movement or total number of bikes at the station is represented by acitivity gradients  greyscale, the range from dark and light tone is sorted by the increasing of luminance. The darker color is indicated the lesser movement of bikes at particular location, while the lighter color is indicated the more bike movement at particluar location. 
+> The number of bikes starting at destination is represented by orange color. The more bikes arrive at destination, the high chroma or intensity of  oranges color. 
+> The number of bikes leaving at origin is represented by the blue color.The more bikes leave at origin, the high chroma or intensity of blue color.
+
+
+# Question 2 — communication, coordinate systems
+
+
+
+Explain to the same Citi Bike analytics executive, what type of coordinate system was used for this *Activity and Balance* graphic?
+
+
+
+> The graphic is used 2D Cartesian coordinate system for data visualization. The Y-axis is address - avenue name and street number, ranging from 1Ave&E15st to YorkSt&JaySt. The X-axis is hour of time, with a grid line start at 12AM until 11PM. 
+
+
+
+# Question 3 — communication, comparing encoded data
+
+
+
+From our discussions, we listed several ways we can compare visually-encoded data, from more effective to less effective. 
+
+From the Center's *Activity and Balance* graphic, what type(s) of visual comparisons do the encodings enable? Explain to a mixed audience of Citi Bike analytics executives.
+
+
+
+> The Center's graphic uses heatmap data visualization, graphical representations of data that utilize color-coded systems for comparison. The more bikes arrive at the destination, the higher the color chroma or intensity of orange color. In contrast, the fewer bikes arrive at the destination, the low chroma or intensity of oranges color and eventually, the orange color fades and become dark color. Moreover, the more bikes leave at origin, the high chroma or intensity of blue color. On the other hand, the fewer bikes leave at the origin, the low chroma or intensity of oranges color and eventually the blue color fade and become dark color.The activity gradient shows the number of bikes' movement of arrival and departure. More traffic at the station, the lighter color area. The less traffic at the station, the darker the color area. For example, if we look at the first address on the y-axis of 1 Ave& E 15 St, and 8 AM on X-axis, the color is bright orange. The color suggests that many bikes arrive at this station, and at 8 AM is a busy time as people travel to work. 
+
+> To decide on the color, we calculate the difference between the number of bikes leave and the number of bikes that arrive. Moreover, the absolute value of the difference can indicate the degree of chroma and luminance. The lighter the color, the higher the value; the darker the color, the lower its value. White is the color with the highest value; black is the color with the lowest value. If the difference is positive, it suggests the origin station and shows as blue color. If the difference is negative, it indicates the destination station with orange color. If the difference is zero, no bike arrives or leaves and shows the darker color. Finally, if the difference is highly positive (only bike arrival), this indicates a lighter area. 
+
+
+
+# Question 4 — workflow, tidying and transforming data
+
+
+
+Next, we will re-construct the main components of this graphic together. I'll setup most of the code, and you will fill in the needed gaps (I prompt you with a code comment) as your answers.
+
+To get started, we will first load our main library,
+
+```{r}
+library(tidyverse)
+```
+
+and gather data from the New York City Bike Share data repository: [https://ride.citibikenyc.com/system-data](https://ride.citibikenyc.com/system-data). The first time the code chunk below is run, it will download and save the zip file into your subdirectory you previously created in homework 1 called `data`, if the file hasn't already been saved. Then, we read in the `csv` file into an R data frame object we call `df`:
+
+```{r}
+savefile <- "data/201909-citibike-tripdata.csv"
+
+if (!file.exists(savefile)) {
+  url <- "https://s3.amazonaws.com/tripdata/201909-citibike-tripdata.csv.zip"
+  download.file(url = url, destfile = savefile )
+  }
+
+df <- read_csv(savefile)
+```
+
+Next, we will *tidy* our data frame by renaming variables.
+
+```{r}
+df <- df %>% rename_with(~ gsub(' ', '_', .) )
+```
+
+Explore the data frame for missing data. You'll notice that some start and end station names are missing. We cannot reconstruct Columbia University Center for Spatial Research's graphic without these values, so we will filter those `NA` values out of our data frame, keeping in mind that our result is now conditional on the data we still have. We also want to just consider observations with an `end_station_name` that is also used as a `start_station_name`.
+
+```{r}
+df <- 
+  df %>% 
+  filter(
+    if_any(contains('station_name'), ~ !is.na(.)),
+    end_station_name %in% start_station_name
+  )
+```
+
+We need to change the structure of our data so that we can map data values onto the visual encodings used in the Center's graphic.
+
+More specifically, we need to know the number of rides both starting and ending at each station name at each hour of the day, averaged over the number of days in our data set. We'll need to create new variables and pivot some of the data. Specifically, we will create a variable for day of month (`day`) and hour of day (`hour`) from the existing variable `starttime`. Then, we will pivot two variables — `start_station_name` and `end_station_name` into long format, like so:
+
+```{r}
+df <- 
+  df %>%
+  mutate(
+    day = format(starttime, "%d"),
+    hour = format(starttime, "%H")
+  ) %>%
+  pivot_longer(
+    cols = c(start_station_name, end_station_name), 
+    names_to = "start_end",
+    values_to = "station_name"
+  ) %>%
+  mutate(
+    station_name = fct_reorder(station_name, desc(station_name))
+  )
+```
+
+
+The pivot results in creating separate observations, from the perspective of a docking station (instead of the perspective of a ride), for both types of events: *a bike parking and a bike leaving*.
+
+Are you starting to see that tidying and transforming data are frequently useful prerequisites to making graphics that provide real insight? Hint, the correct answer is "Yes, and this is awesome!"
+
+> I agree that tidying and transforming data are frequently helpful prerequisites to making graphics that provide real insight. 
+So, firstly, we tidy the data frame and rename variables by replacing space with an underscore. Next, we clean the data and filter `NA` values out of our data frame. The tidying and cleaning data help remove all missing information and leave only reliable quality data for further analysis. Finally, we transform the data by using mutate function to create a variable for the day of the month (`day`) and hour of the day (`hour`) from the existing variable `start_time.` Then, we use pivot two variables — `start_station_name` and `end_station_name` into the long format. As a result, the data becomes more structured, as the station name arranges in descending order. For example, the 'bikeid' column presented both types of events of bike parking and a bike leaving. Also, the 'bikeid' denoted the particular ride, starting from one station and ending at another station, and presents into conservative one after another.  
+
+
+
+# Question 5 — workflow, transforming data
+
+
+
+With the pivoted data frame, we can now group our data by station name and hour, and calculate the averages we'll need to map onto visual variables. 
+
+Create new variables `activity` and `balance`, where `activity` holds the average number of rides or observations at each station name each hour and where `balance` hold the average difference between rides beginning at the station and rides ending at the station.
+
+```{r}
+df <- 
+  df %>%
+  group_by(station_name, hour, .drop = FALSE) %>%
+  
+  summarise (
+    activity = n(),
+    balance  = sum(if_else(start_end == 'start_station_name', -1, +1) ) 
+  ) %>%
+  
+  ungroup()
+```
+
+Inspect this data frame, and compare with the original imported data frame to understand how each step of the above code changed its structure. Start to consider how we will map these data variables onto the visual variables used in the Center's *Activity and Balance* graphic.
+
+In our third discussion, we considered how to scale data values to map their ranges to the appropriate ranges for each channel of color: hue, chroma (saturation), and luminance. We'll do that next.
+
+
+
+# Question 6 — workflow, scaling data
+
+
+
+Complete the code below to properly scale your data variables to the ranges of your visual variables. To get you started, I've written the following code:
+
+```{r}
+library(scales)
+
+df <-
+  df %>%
+  mutate(
+    hue = if_else(balance < 0, 50, 200),
+    saturation =
+      rescale(
+        abs(balance),
+        from = c(min(abs(balance)), max(abs(balance))),
+        to   = c(0, 100)
+      ),
+    luminance =
+      rescale(
+        activity,
+        from = c(min(activity), max(activity)),
+        to   = c(0, 100)
+      )
+  )
+```
+
+
+
+# Question 7 — workflow, mapping data to visual channels
+
+
+
+Finally, we are ready to map our data onto the visual variables. The Center's *Activity and Balance* graphic resembles a so-called *heatmap*. 
+
+Use the grammar of graphics to create tiles of information, using the function `geom_tile`. To do that, first review the help file for that function, paying particular attention to the aesthetics you'll need to specify. 
+
+Further, to map the individual channels of color, you can use the function `hcl` that's already loaded from `tidyverse`, which works very similarly to (a bit less optimal than) the example I showed you from my R package, `hsluv_hex`. You may also use mine, but that will require you to install it.
+
+I've started the code for you below. Add code where prompted.
+
+```{r}
+p <- 
+  df %>%
+  ggplot() +
+  scale_fill_identity() +
+  geom_tile(
+    mapping = aes(
+      x = hour,
+      y = station_name,
+      fill = hcl(hue, saturation, luminance)
+    ),
+    width = 0.95,
+    height = 0.95
+  ) +
+  theme_dark() +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    plot.background = element_rect(fill = "#333333"),
+    axis.text.x = element_text(color = "#888888", size = 16 / .pt),
+    axis.text.y = element_text(color = "#888888", size =  7 / .pt)
+  ) +
+  labs(x = "", y = "")
+
+# The next line of code will save the graphic as a pdf onto your working
+# directory so that you can separately open and zoom in while reviewing it.
+ggsave("activity_balance2019.pdf", plot = p, width = 8, height = 40)
+
+p
+```
+
+
+
+# Question 8 — communication, decoding and interpretation: critical thinking
+
+
+
+We've finished roughly reconstructing the Center's Activity and Balance graphic, updated with later data from September 2019, six years after the original graphic but still before the pandemic. We find that the patterns originally described by the Center still show up. Review their description of the Activity and Balance graphic.
+
+Notice that the Center's description of its graphic and data do not, however, discuss whether empty and full docking stations, and rebalancing efforts by Citi Bike, have any effect on the patterns they describe.
+
+How might 1) empty and full docking stations and 2) CitiBike rebalancing bikes affect the visual patterns in our graphic? Explain to a Citi Bike analytics executive.
+
+> From the above argument, we define `activity` as the average number of rides at each station name each hour and where `balance` is the average difference between rides beginning at the station and rides ending at the station.
+> An 'empty station' means no bikes enter and park at the station, and only the bikes leave at the station. As a result, the station has no bikes left and becomes empty. As a result, the average number of rides or activities at the station is high. However, the average difference between rides beginning at the station and rides ending at the station or balance is negative. The virtual pattern will show the black/dark color = HCL(50, 100, 0).
+> In contrast, a 'full station' means there are full of bikes as no bikes leave the station. As a result, the average number of rides or activities at the station is zero. However, the average difference between rides beginning at the station and rides ending at the station or balance is highly positive. The virtual pattern will show the white/bright color = HCL(200, 0, 100). 
+> Rebalancing means restoring the bikes from an empty station to the full station and optimizing availability and drop-off. As a result, the activities at the station are positive. However, the balance is zero because when the bikes leave the station, new bikes enter the station to rebalance. The virtual pattern will show the black/dark color = HCL(0, 100, 0).
+
+
+
+# Knit and submit
+
+
+
+In submitting this **individual** assignment, you are representing your answers are your own. Properly **Cite** all resources used in completing this assignment.
+
+**Knit** your answers in this r markdown file into an `html` file. Submit into courseworks both files (the `lastname-firstname-hw2.rmd` and the knitted `lastname-firstname-hw2.html`). We should be able to reproduce your `html` file just by opening your `rmd` file and knitting.

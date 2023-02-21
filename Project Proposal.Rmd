@@ -1,0 +1,32 @@
+---
+title: "Homework 3 - writing"
+date: '`r Sys.Date()`'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+To: Thomas Jacques
+
+Chief Technology Officer at Tinder
+
+**Let's explore data and build a Machine Learning model to track down the romance scammers and improve the safety of our online dating community.**
+
+Online dating has been growing in popularity. However, people have reported losing over \$1.3 billion related to romance scams in the past five years, with the most significant reported losses paid in cryptocurrency [@fletcher2022]. By exploring the scams data and the monetary loss will help us gain insight into the trend of dating scams and build innovative features to protect the users. 
+
+First, we will use the published fraud report to the Federal Trade Commission (FTC) Consumer Sentinel Network classified as romance scams in the context of age group, social media platforms, and payment methods indicating the dollar losses. Then, we can virtually explore the intersection trend of the data and understand the target audience, the top online platforms identified as the starting point for the scam, the top payment methods on romance scams ranked by reported monetary losses. Furthermore, we use R programming to virtualize the correlation and trend analysis between romance scams and our Tinder database to observe the users' behavior. Finally, we will build the ML model algorithms to find the pattern and detect whether the user is a scam or not.
+
+The project will use cutting-edge technology to help accomplish a minimum for user safety, which aligns with the company goal as Elie Seidman, CEO of Tinder, mentioned that "driving our safety work forward at an unmatched scale" [@tinder2020].  
+
+Sincerely, 
+
+Kanyarat Suwannama
+
+------------------------------------------------------------------------
+
+Reference:
